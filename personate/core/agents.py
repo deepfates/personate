@@ -50,7 +50,7 @@ class Agent:
                 agent_dialogue = example.pop("agent")
                 user = list(example.keys())[0]
                 final_example = f"""<{user}> {example[user]}\n<{agent.name}> {agent_dialogue}"""
-                print(final_example)
+                # print(final_example)
                 agent.add_example(final_example)
             except:
                 pass
