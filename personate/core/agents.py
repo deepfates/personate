@@ -5,7 +5,7 @@ import json
 import asyncio
 from typing import Callable, Dict, Optional, Union, List, Set
 import inspect
-from . import dialogue_generator
+from dialogue_generator import generate_dialogue
 
 async def get_conversation_history(
     message: str, maximum_chars: int = 800
@@ -36,7 +36,7 @@ class Agent:
         self.messages_cache: dict = {}
         self.post_translators: List[Callable] = []
         self.ranker = None
-        self.dialogue_generator = dialogue_generator
+        self.dialogue_generator = generate_dialogue
 
     @classmethod
     def from_json(cls, filename: str) -> "Agent":
