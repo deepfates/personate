@@ -5,7 +5,7 @@ import json
 import asyncio
 from typing import Callable, Dict, Optional, Union, List, Set
 import inspect
-from dialogue_generator import generate_dialogue
+from .dialogue_generator import generate_dialogue
 
 async def get_conversation_history(
     message: str, maximum_chars: int = 800
