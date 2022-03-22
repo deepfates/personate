@@ -42,7 +42,8 @@ class Agent:
     def from_json(cls, filename: str) -> "Agent":
         with open(filename, "r") as f:
             data = json.load(f)
-        agent = cls(**data,)
+        agent = cls(**data)
+        agent.activators = [o["listens_to"] for o in data["activators"]]
         agent.examples = set()
         for example in data["examples"]:
             try:
