@@ -96,9 +96,11 @@ class Agent:
             return None
         return "- " + "\n- ".join(facts)
 
-    async def rerank(self, query: str, docs: tuple, max_chars: int = 180):
+    async def rerank_examples(self, query: str, max_chars: int = 180) -> list[str]:
+        if not self.ranker:
+            return []
         try:
-            _top_results = await self.ranker.rank(texts=docs, query=query, top_k=len(docs), model=self.ranker.default_model)
+            _top_results = await self.ranker.rank(texts=tuple(self.examples), query=query, top_k=len(self.examples), model=self.ranker.default_model)
         except Exception as e:
             print(e)
             return []
@@ -109,18 +111,19 @@ class Agent:
                 break
         return top_results
 
-    async def rerank_examples(self, query: str, max_chars: int = 180) -> list[str]:
-        if not self.ranker:
-            return []
-        top_results = await self.rerank(query, tuple(self.examples))
-        return top_results
-
     async def rerank_facts(self, query: str, max_chars: int = 180) -> Optional[str]:
         if not self.ranker:
             return ""
-        top_results = await self.rerank(query, tuple(self.facts))
-        if len(top_results) == 0:
+        try:
+            _top_results = await self.ranker.rank(texts=tuple(self.facts), query=query, top_k=len(self.facts), model=self.ranker.default_model)
+        except Exception as e:
+            print(e)
             return ""
+        top_results = []
+        for res in _top_results:
+            top_results.append(res)
+            if len(''.join(top_results)) > max_chars:
+                break
         return self.facts_as_str(top_results)
 
     async def generate_agent_response(self, msg: str):
