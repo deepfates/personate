@@ -109,16 +109,16 @@ class Agent:
                 break
         return top_results
 
-    async def rerank_examples(self, query: str, max_chars: int = 710) -> list[str]:
+    async def rerank_examples(self, query: str, max_chars: int = 180) -> list[str]:
         if not self.ranker:
             return []
-        top_results = await self.rerank(self, query, tuple(self.examples), max_chars)
+        top_results = await self.rerank(query, tuple(self.examples))
         return top_results
 
     async def rerank_facts(self, query: str, max_chars: int = 180) -> Optional[str]:
         if not self.ranker:
             return ""
-        top_results = await self.rerank(self, query, tuple(self.facts), max_chars)
+        top_results = await self.rerank(query, tuple(self.facts))
         if len(top_results) == 0:
             return ""
         return self.facts_as_str(top_results)

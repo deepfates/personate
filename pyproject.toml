@@ -19,7 +19,6 @@ ujson = "^5.1.0"
 aiohttp = "^3.8.1"
 sqlitedict = "^1.7.0"
 parse = "^1.19.0"
-bing-image-urls = "^0.1.4" # needed for agents to search for images
 pycld2 = "^0.41" # needed for agents to detect and translate between languages
 googlesearch-python = "^1.1.0"
 python-dotenv = "^0.19.2"
