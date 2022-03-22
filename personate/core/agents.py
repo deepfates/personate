@@ -1,4 +1,3 @@
-
 # optional: uvloop makes stuff go around 3-4 times faster
 #import uvloop
 #uvloop.install()
@@ -6,12 +5,7 @@ import json
 import asyncio
 from typing import Callable, Dict, Optional, Union, List, Set
 import inspect
-
-AGENT_PREFIX = "&"
-async def check_if_message_refers_to_name(name: str, message: str) -> bool:
-    if f"{AGENT_PREFIX}{name.lower()}" in message.content.lower():
-        return True
-    return False
+from . import dialogue_generator
 
 async def get_conversation_history(
     message: str, maximum_chars: int = 800
@@ -29,7 +23,6 @@ class Agent:
         avatar: str,
         introduction: str,
         is_ai: bool = False,
-        loading_message: str = "...",
         **kwargs
     ):
         self.name = name
@@ -43,6 +36,7 @@ class Agent:
         self.messages_cache: dict = {}
         self.post_translators: List[Callable] = []
         self.ranker = None
+        self.dialogue_generator = dialogue_generator
 
     @classmethod
     def from_json(cls, filename: str) -> "Agent":
@@ -128,52 +122,33 @@ class Agent:
             return ""
         return self.facts_as_str(top_results)
 
-    def __repr__(self):
-        return f"Agent({self.name})"
+    async def generate_agent_response(self, msg: str):
 
-class AgentRouter:
-    def __init__(self, dialogue_generator: Callable):
-        self.agents: dict[str, Agent] = {}
-        self.dialogue_generator = dialogue_generator
-
-    async def check_if_refers_to_agent(self, msg: str):
-        for name, agent in self.agents.items():
-            if await check_if_message_refers_to_name(name, msg):
-                yield agent
-
-    async def generate_agent_responses(self, msg: str):
-        async for agent in self.check_if_refers_to_agent(msg):
-            asyncio.create_task(self.generate_agent_response(agent, msg))
-
-    async def generate_agent_response(self, agent: Agent, msg: str):
-        if not agent:
-            return
-        agent_message = await agent.face.send_loading(msg.channel.id)
         conversation = "\n".join(await get_conversation_history(msg))
 
-        conversation = conversation.replace(f"{AGENT_PREFIX}{agent.name}", "")
-        conversation = conversation.replace(f"{AGENT_PREFIX}{agent.name.lower()}", "")
-        if agent.ranker:
-            examples = await agent.rerank_examples(conversation[-120:])
-            facts = await agent.rerank_facts(conversation[-120:])
+        if self.ranker:
+            examples = await self.rerank_examples(conversation[-120:])
+            facts = await self.rerank_facts(conversation[-120:])
         else:
             examples = None
             facts = None
 
         reply = await self.dialogue_generator(
-            name=agent.name,
-            description=agent.description,
+            name=self.name,
+            description=self.description,
             conversation=conversation,
-            is_ai=agent.is_ai,
+            is_ai=self.is_ai,
             examples=examples,
             facts=facts,
-            response_type=agent.response_type,
-            annotation=agent.annotation,
+            response_type=self.response_type,
+            annotation=self.annotation,
         )
 
-        reply = await agent.translate(reply)
+        reply = await self.translate(reply)
         
-        await agent_message.update(content=reply)
+        return reply
 
-    def add_agent(self, agent: Agent):
-        self.agents[agent.name] = agent
+    def __repr__(self):
+        return f"Agent({self.name})"
+
+
