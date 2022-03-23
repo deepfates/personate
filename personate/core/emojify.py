@@ -1,6 +1,7 @@
 import json
 from acrossword import Ranker
 import random
+import pkgutil
 from typing import Optional
 
 def emojify(emoji_file: str, names: Optional[list[str]] = None):
@@ -22,3 +23,16 @@ def emojify(emoji_file: str, names: Optional[list[str]] = None):
         return wrapper
     return outer_wrapper
     # This adds an emoji to the string result of an async function. You can use it for whatever.
+
+
+def get_all_emojis():
+    raw_bytes = pkgutil.get_data(__name__, 'full-emoji-list.json')
+    emojis_raw = json.loads(raw_bytes.decode('utf-8'))
+    emojis = {}
+    for k,v in emojis_raw.items():
+        for o in v:
+            keywords = " ".join(o["keywords"])
+            full_description = f"{o['description']} {keywords}"
+            unicode_char = f'{o["code"].replace("+", "000")}'
+            emojis[full_description] = o["emoji"]
+    return emojis

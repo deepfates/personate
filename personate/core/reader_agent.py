@@ -4,11 +4,13 @@ from urllib.parse import quote_plus
 from acrossword import Document, DocumentCollection, Ranker
 from .agent import Agent, get_conversation_history
 from ..utils import logger
+from .emojify import get_all_emojis
 
 class ReaderAgent(Agent):
     def __init__(self, **args):
         self.document_collection = DocumentCollection(documents=[])
         self.document_queue: List[Coroutine] = []
+        self.emojis = get_all_emojis()
         super().__init__(**args)
         asyncio.create_task(self.assemble_documents())
         
@@ -98,9 +100,6 @@ class ReaderAgent(Agent):
         self.document_queue.clear()
         self.document_collection.extend_documents(list(documents))
 
-    async def rerank(self, query: str, docs: Union[DocumentCollection, tuple], max_chars: int = 180):
-        return super().rerank(query, docs, max_chars)
-
     async def search_knowledge(self, query: str, max_chars: int = 500) -> Optional[str]:
         if self.document_collection and len(self.document_collection.documents) > 0:
             top_results = [
@@ -111,8 +110,12 @@ class ReaderAgent(Agent):
             ]
             as_str = "\n".join(top_results)
             if as_str:
-                return as_str
+                return as_str[:max_chars]
         return None
+
+    async def get_emoji(self, msg: str) -> str:
+        top_emoji = await self.ranker.rank(texts=tuple(self.emojis.keys()), query=msg, top_k=1, model=self.ranker.default_model)
+        return self.emojis[top_emoji[0]]
 
     async def generate_agent_response(self, msg: str):
 
@@ -126,8 +129,6 @@ class ReaderAgent(Agent):
             examples = None
             facts = None
             knowledge = None
-
-        print("documents", knowledge)
         
         reply = await self.dialogue_generator(
             name=self.name,
