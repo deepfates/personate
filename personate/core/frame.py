@@ -1,17 +1,17 @@
 import copy
 import asyncio
-from typing import Callable, List, Sequence, Union
+from typing import Any, Callable, List, Optional, Sequence, Union
+from personate.core.completions import custom_generator_api
 from personate.utils.logger import logger
+from personate.decos.filter import Filter, DefaultFilter
 
 class Frame:
     def __init__(self, fields: List[Sequence[str]], generator_api: Callable):
         self.fields = fields
-        self.field_values: dict[str, Union[str, List[str]]] = {}
         # A list of field-names and their default values if unspecified.
-        # self.template = template
-        # A string containing the template to be used for this frame.
-        self.filters = []
+        self.field_values: dict[str, Union[str, List[str]]] = {}
         # A list of filters to be applied to the outputs.
+        self.filters = []
         self.generator_api = generator_api
 
     async def as_string(self) -> str:
@@ -63,3 +63,70 @@ class Frame:
             return completion
         else:
             raise Exception("No completion found.")
+
+class Prompt:
+
+    def __init__(self, name: str, **kwargs):
+        self.frame = Frame(
+            fields=[
+                ("introduction", ""),
+                ("examples", ""),
+                ("facts", "")
+                ("is_ai", "")
+                ("pre_conversation_annotation", ""),
+                ("response_type", ""),
+                ("current_conversation", ""),
+                ("pre_response_annotation", ""),
+                ("reading_cue", ""),
+                ("api_result", ""),
+                ("speech_cue", f"<{name}>:"),
+            ],
+            generator_api=custom_generator_api,
+        )
+        self.name = name
+        self.frame.filters = [DefaultFilter()]
+        self.max_characters: int = 1000
+        self.__dict__.update(kwargs)
+
+    def add_filter(self, filter: Filter):
+        self.frame.filters.append(filter)
+
+    def set_pre_conversation_annotation(self, annotation: str):
+        self.frame.field_values["pre_conversation_annotation"] = annotation
+    
+    def set_response_type(self, annotation: str):
+        self.frame.field_values["response_type"] = "And now, the full 2000-word dialog where we give the character its unique, distinct voice and typing style. Users submitted questions to us and had long conversations, and we gave responses that were {response_type} (luckily we had expert researchers and specialists on the team – sometimes it took us up to three hours to craft the perfect answer):"
+    
+    def set_pre_response_annotation(self, annotation: str):
+        self.frame.field_values["pre_response_annotation"] = f"(Quick note, and we promise there won't be any more commentary after this: {annotation})\n"
+
+    def set_introduction(self, introduction: str):
+        self.frame.field_values["introduction"] = introduction
+
+    def set_is_ai(self, is_ai: bool = False):
+        ai_sentence = "Note that despite being specified as an AI, we chose to act as a human-level AI and to speak naturally, with artistic flair and personality. "
+        self.frame.field_values["is_ai"] = ai_sentence
+
+    def use_examples(self, examples: Optional[list] = None):
+        examples_sentence = (
+            "\n\nHere are some example dialogues that we sketched out that really capture the voice and tonality of the character:\n"
+            + "\n".join(examples)
+            + "\n\n"
+            )
+        self.frame.examples = examples_sentence
+
+    def use_facts(self, facts: str):
+        if facts:
+            facts_sentence = f"\nWe were also given these facts, which we were told to be absolutely consistent with:\n{facts}"
+        self.frame.field_values["facts"] = facts_sentence
+
+    def use_knowledge(self, knowledge: str):
+        self.frame.field_values["reading_cue"] = f'(Sources: "{knowledge}")'
+
+    def use_api_result(self, result: str):
+        self.frame.field_values["api_result"] = f'(API result: "{result}")'
+
+    async def generate_reply(self, conversation) -> str:
+        self.frame.field_values["conversation"] = conversation
+        completion = await self.frame.complete()
+        return completion
