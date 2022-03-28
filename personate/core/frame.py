@@ -82,7 +82,7 @@ class Prompt:
                 ("api_result", ""),
                 ("speech_cue", f"<{name}>:"),
             ],
-            generator_api=default_generator_api,
+            generator_api=custom_generator_api,
         )
         self.name = name
         self.frame.filters = [DefaultFilter()]
