@@ -2,9 +2,10 @@ import os, json, asyncio
 from typing import AsyncGenerator, Callable, Coroutine, Dict, List, Optional, Union
 from urllib.parse import quote_plus
 from acrossword import Document, DocumentCollection, Ranker
-from .agent import Agent, get_conversation_history
-from ..utils import logger
-from .emojify import get_all_emojis
+from personate.utils.logger import logger
+from personate.core.agent import Agent, get_conversation_history
+from personate.core.emojify import get_all_emojis
+from personate.core.frame import Prompt
 
 class ReaderAgent(Agent):
     def __init__(self, **args):
@@ -19,6 +20,15 @@ class ReaderAgent(Agent):
         with open(filename, "r") as f:
             data = json.load(f)
         agent = cls(**data)
+        agent.prompt = Prompt(agent.name)
+        agent.prompt.set_introduction(agent.description)
+        if agent.is_ai:
+            agent.prompt.set_is_ai(True)
+        if agent.annotation:
+            agent.prompt.set_pre_response_annotation(agent.annotation)
+        if not agent.response_type:
+            agent.response_type = "concise, interesting and conversationally-engaging"
+        agent.prompt.set_response_type(agent.response_type)
         agent.ranker = Ranker()
         agent.reading_list = data["reading_list"]   
         # Make the document directory
@@ -111,7 +121,7 @@ class ReaderAgent(Agent):
             as_str = "\n".join(top_results)
             if as_str:
                 return as_str[:max_chars]
-        return None
+        return ""
 
     async def get_emoji(self, msg: str) -> str:
         top_emoji = await self.ranker.rank(texts=tuple(self.emojis.keys()), query=msg, top_k=1, model=self.ranker.default_model)
@@ -121,25 +131,16 @@ class ReaderAgent(Agent):
 
         conversation = "\n".join(await get_conversation_history(msg))
 
-        if self.ranker:
-            examples = await self.rerank_examples(conversation[-120:])
-            facts = await self.rerank_facts(conversation[-120:])
-            knowledge = await self.search_knowledge(conversation[-120:])
-        else:
-            examples = None
-            facts = None
-            knowledge = None
+        examples = await self.rerank_examples(conversation[-120:])
+        facts = await self.rerank_facts(conversation[-120:])
+        knowledge = await self.search_knowledge(conversation[-120:])
         
-        reply = await self.dialogue_generator(
-            name=self.name,
-            description=self.description,
+        self.prompt.use_examples(examples)
+        self.prompt.use_facts(facts)
+        self.prompt.use_knowledge(knowledge)
+
+        reply = await self.prompt.generate_reply(
             conversation=conversation,
-            is_ai=self.is_ai,
-            examples=examples,
-            facts=facts,
-            knowledge=knowledge,
-            response_type=self.response_type,
-            annotation=self.annotation,
         )
 
         reply = await self.translate(reply)
