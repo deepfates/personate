@@ -97,7 +97,7 @@ class Agent:
         return "- " + "\n- ".join(facts)
 
     async def rerank_examples(self, query: str, max_chars: int = 180) -> list[str]:
-        if not self.ranker:
+        if not (self.ranker or self.examples()):
             return []
         try:
             _top_results = await self.ranker.rank(texts=tuple(self.examples), query=query, top_k=len(self.examples), model=self.ranker.default_model)
@@ -112,7 +112,7 @@ class Agent:
         return top_results
 
     async def rerank_facts(self, query: str, max_chars: int = 180) -> Optional[str]:
-        if not self.ranker:
+        if not (self.ranker or self.facts()):
             return ""
         try:
             _top_results = await self.ranker.rank(texts=tuple(self.facts), query=query, top_k=len(self.facts), model=self.ranker.default_model)
