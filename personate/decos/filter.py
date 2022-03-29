@@ -133,4 +133,4 @@ class DefaultFilter(Filter):
     """This simply contains DeviatesFromScriptFilter and is used as the default filter, but I'll add more stuff to it later."""
 
     def __init__(self) -> None:
-        super().__init__([DeviatesFromScriptFilter(), TooSimilarFilter(), SlurFilter()])
+        super().__init__([TooSimilarFilter(), SlurFilter()])
