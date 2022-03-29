@@ -93,6 +93,9 @@ class Prompt:
     def add_filter(self, filter: Filter):
         self.frame.filters.append(filter)
 
+    def set_introduction(self, introduction: str):
+        self.frame.field_values["introduction"] = f"Something that our team enjoyed recently was being given randomly-generated character descriptions, then writing rich, detailed, convincing dialogues. The plot-twist: those dialogues occur in a modern group chat. So, we present to you, the character description:\n\n{introduction}"
+
     def set_pre_conversation_annotation(self, annotation: str):
         self.frame.field_values["pre_conversation_annotation"] = annotation
 
@@ -105,9 +108,6 @@ class Prompt:
         self.frame.field_values[
             "pre_response_annotation"
         ] = f"(Quick note, and we promise there won't be any more commentary after this: {annotation})\n"
-
-    def set_introduction(self, introduction: str):
-        self.frame.field_values["introduction"] = f"Something that our team enjoyed recently was being given randomly-generated character descriptions, then writing rich, detailed, convincing dialogues. The plot-twist: those dialogues occur in a modern Discord chatroom. So, we present to you, the character description:\n\n{introduction}"
 
     def set_is_ai(self, is_ai: bool = False):
         ai_sentence = "Note that despite being specified as an AI, we chose to act as a human-level AI and to speak naturally, with artistic flair and personality. "
