@@ -80,10 +80,13 @@ class Swarm:
         # We could check for validity, but in practice the error will be propagated anyway.
         logger.debug(f"Parsed args: {arg_nodes}")
         logger.debug(f"Parsed keywords: {keyword_nodes}")
-        if inspect.iscoroutinefunction(func):
-            result = await func(*arg_nodes, **keyword_nodes)
-        else:
-            result = func(*arg_nodes, **keyword_nodes)
+        try:
+            if inspect.iscoroutinefunction(func):
+                result = await func(*arg_nodes, **keyword_nodes)
+            else:
+                result = func(*arg_nodes, **keyword_nodes)
+        except Exception as e:
+            result = e
         return str(result)
 
     async def get_arguments(
@@ -95,7 +98,7 @@ class Swarm:
             .replace("{documentation}", top_function_docstring)
             .replace("{name}", func_name)
         )
-        args = await get(prompt=prompt, temp=0.55, stops=[")\n"], max=30, size='j1-large')
+        args = await get(prompt=prompt, temp=0.55, stops=[")\n"], max=30)#, size='j1-large')
         if isinstance(args, str):
             return args
         else:

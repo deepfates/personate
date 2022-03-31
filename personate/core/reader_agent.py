@@ -157,8 +157,8 @@ class ReaderAgent(Agent):
     async def generate_agent_response(self, msg: str):
         
         api_result = await self.swarm.solve(msg[-120:])
-        if api_result:
-            return api_result
+        # if api_result:
+        #     return api_result
 
         examples = await self.rerank_examples(msg[-120:])
         facts = await self.rerank_facts(msg[-120:])
