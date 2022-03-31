@@ -1,11 +1,13 @@
 import os, json, asyncio
-from typing import AsyncGenerator, Callable, Coroutine, Dict, List, Optional, Union
+from typing import Coroutine, List, Optional
+from types import ModuleType 
 from urllib.parse import quote_plus
 from acrossword import Document, DocumentCollection, Ranker
 from personate.utils.logger import logger
 from personate.core.agent import Agent, get_conversation_history
 from personate.core.emojify import get_all_emojis
 from personate.core.frame import Prompt
+from personate.swarm.swarm import Swarm
 
 class ReaderAgent(Agent):
     def __init__(self, **args):
@@ -20,7 +22,8 @@ class ReaderAgent(Agent):
         with open(filename, "r") as f:
             data = json.load(f)
         agent = cls(**data)
-        agent.prompt = Prompt(agent.name, size='j1-large')
+        # Built the prompt
+        agent.prompt = Prompt(agent.name)#, size='j1-large')
         agent.prompt.set_introduction(agent.description)
         if agent.is_ai:
             agent.prompt.set_is_ai(True)
@@ -29,9 +32,9 @@ class ReaderAgent(Agent):
         if not agent.response_type:
             agent.response_type = "concise, interesting and conversationally-engaging"
         agent.prompt.set_response_type(agent.response_type)
+        # Collect knowledge documents
         agent.ranker = Ranker()
         agent.reading_list = data["reading_list"]   
-        # Make the document directory
         agent.home_dir = f"{agent.name}"
         if not os.path.exists(agent.home_dir):
             os.mkdir(agent.home_dir)
@@ -49,17 +52,25 @@ class ReaderAgent(Agent):
                     agent.add_knowledge(url, is_text=True)
                     logger.debug(f"Using text knowledge {url}")    
         agent.add_knowledge_directory(agent.knowledge_dir)
+        # Set keywords for the agent to respond to
         agent.activators = [o["listens_to"] for o in data["activators"]]
+        # Set examples of agent dialogue
         agent.examples = set()
         for example in data["examples"]:
             try:
                 agent_dialogue = example.pop("agent")
                 user = list(example.keys())[0]
                 final_example = f"""<{user}> {example[user]}\n<{agent.name}> {agent_dialogue}"""
-                # print(final_example)
                 agent.add_example(final_example)
             except:
                 pass
+        # Build agent's python abilities
+        agent.swarm = Swarm()
+        abilities_module = data.get("abilities_module", None)
+        if abilities_module:
+            agent.add_abilities_from_library(abilities_module)
+        agent.abilities_dir = f"{agent.home_dir}/abilities"
+        agent.add_abilities_directory(agent.abilities_dir)
         return agent
 
     def add_knowledge(
@@ -123,24 +134,42 @@ class ReaderAgent(Agent):
                 return as_str[:max_chars]
         return ""
 
+    def add_abilities_from_file(self, filename: str) -> None:
+        logger.debug(f"Adding abilities from file {filename}")
+        self.swarm.use_module(filename)
+
+    def add_abilities_from_library(self, module: ModuleType):
+        logger.debug(f"Adding abilities from module {module.__name__}")
+        self.swarm.use_module(module.__name__, register_all=True)
+
+    def add_abilities_directory(self, directory_name: str):
+        files = os.listdir(directory_name)
+        for f in files:
+            if f.endswith(".py"):
+                importname = f"{directory_name}/{f}".replace("/",".").replace(".py","")
+                logger.debug(importname)
+                self.add_abilities_from_file(importname)
+                
     async def get_emoji(self, msg: str) -> str:
         top_emoji = await self.ranker.rank(texts=tuple(self.emojis.keys()), query=msg, top_k=1, model=self.ranker.default_model)
         return self.emojis[top_emoji[0]]
 
     async def generate_agent_response(self, msg: str):
-
-        conversation = "\n".join(await get_conversation_history(msg))
-
-        examples = await self.rerank_examples(conversation[-120:])
-        facts = await self.rerank_facts(conversation[-120:])
-        knowledge = await self.search_knowledge(conversation[-120:])
         
+        api_result = await self.swarm.solve(msg[-120:])
+        if api_result:
+            return api_result
+
+        examples = await self.rerank_examples(msg[-120:])
+        facts = await self.rerank_facts(msg[-120:])
+        knowledge = await self.search_knowledge(msg[-120:])
+
         self.prompt.use_examples(examples)
         self.prompt.use_facts(facts)
         self.prompt.use_knowledge(knowledge)
 
         reply = await self.prompt.generate_reply(
-            conversation=conversation,
+            conversation=msg[-800:],
         )
 
         reply = await self.translate(reply)

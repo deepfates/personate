@@ -133,13 +133,16 @@ class Prompt:
 
     def use_knowledge(self, knowledge: str):
         if knowledge:
-            self.frame.field_values["reading_cue"] = f'(Sources: "{knowledge}")'
+            self.frame.field_values["reading_cue"] = f'(Sources, which the answer must be consistent with: "{knowledge}")'
         else:
             self.frame.field_values["reading_cue"] = ""
             
     def use_api_result(self, result: str):
-        self.frame.field_values["api_result"] = f'(API result: "{result}")'
-
+        if result:
+            self.frame.field_values["api_result"] = f'(API result, which we always include in the answer: "{result}")'
+        else:
+            self.frame.field_values["api_result"] = ""
+   
     async def generate_reply(self, conversation) -> str:
         self.frame.field_values["conversation"] = conversation
         completion = await self.frame.complete()
