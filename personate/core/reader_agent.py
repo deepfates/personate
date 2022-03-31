@@ -20,7 +20,7 @@ class ReaderAgent(Agent):
         with open(filename, "r") as f:
             data = json.load(f)
         agent = cls(**data)
-        agent.prompt = Prompt(agent.name)
+        agent.prompt = Prompt(agent.name, size='j1-large')
         agent.prompt.set_introduction(agent.description)
         if agent.is_ai:
             agent.prompt.set_is_ai(True)
