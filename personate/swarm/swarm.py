@@ -54,7 +54,7 @@ class Swarm:
             texts=tuple(self.abilities.keys()),
             model=ranker.default_model,
             return_none_if_below_threshold=True,
-            threshold=0.1,
+            threshold=0.5,
         )
         logger.debug("Top function for query %s is %s", query, top_function_docstring)
         if not top_function_docstring:
