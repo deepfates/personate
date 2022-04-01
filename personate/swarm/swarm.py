@@ -4,7 +4,7 @@ from pyai21 import get
 import inspect
 from personate.utils.logger import logger
 from personate.swarm.swarm_prompt import prompt
-
+import importlib
 
 class Swarm:
     def __init__(self):
@@ -28,7 +28,7 @@ class Swarm:
         """
         This imports a module and adds all of its functions to self.abilities, but only those defined in the top-level. So if you're importing other functions into your module, it won't register those. You can turn this off by passing register_all=True.
         """
-        import_module = __import__(filename)
+        import_module = importlib.import_module(filename)
         for name, obj in inspect.getmembers(import_module):
             if inspect.isfunction(obj):
                 if not register_all:
@@ -42,6 +42,7 @@ class Swarm:
     async def solve(self, query: str) -> Any:
         """This uses ranker to evaluate which function is most suited to the query, calls it, and returns the result"""
         if not len(self.abilities.keys()) > 0:
+            logger.debug("No abilities registered!")
             return
         from acrossword import Ranker
 
@@ -53,8 +54,9 @@ class Swarm:
             texts=tuple(self.abilities.keys()),
             model=ranker.default_model,
             return_none_if_below_threshold=True,
-            threshold=0.1,
+            threshold=0.5,
         )
+        logger.debug("Top function for query %s is %s", query, top_function_docstring)
         if not top_function_docstring:
             return
         func = self.abilities[top_function_docstring[0]]
@@ -62,6 +64,7 @@ class Swarm:
             query=query, top_function_docstring=top_function_docstring[0], func=func
         )
         result = await self.parse(args=args, func=func)
+        logger.debug(f"Result of function: {result}")
         return result
 
     async def parse(self, args: str, func: Callable) -> Any:
@@ -77,10 +80,13 @@ class Swarm:
         # We could check for validity, but in practice the error will be propagated anyway.
         logger.debug(f"Parsed args: {arg_nodes}")
         logger.debug(f"Parsed keywords: {keyword_nodes}")
-        if inspect.iscoroutinefunction(func):
-            result = await func(*arg_nodes, **keyword_nodes)
-        else:
-            result = func(*arg_nodes, **keyword_nodes)
+        try:
+            if inspect.iscoroutinefunction(func):
+                result = await func(*arg_nodes, **keyword_nodes)
+            else:
+                result = func(*arg_nodes, **keyword_nodes)
+        except Exception as e:
+            result = e
         return str(result)
 
     async def get_arguments(
@@ -92,7 +98,7 @@ class Swarm:
             .replace("{documentation}", top_function_docstring)
             .replace("{name}", func_name)
         )
-        args = await get(prompt=prompt, temp=0.55, stops=[")\n"], max=30)
+        args = await get(prompt=prompt, temp=0.55, stops=[")\n"], max=30)#, size='j1-large')
         if isinstance(args, str):
             return args
         else:
