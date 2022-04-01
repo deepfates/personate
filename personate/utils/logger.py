@@ -3,7 +3,7 @@ from loguru import logger
 
 logger.remove()
 logger.add(
-    sys.stdout,
+    sys.stderr,
     colorize=True,
     backtrace=True,
     diagnose=True,
