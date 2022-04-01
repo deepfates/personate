@@ -159,7 +159,6 @@ class ReaderAgent(Agent):
         api_result = await self.swarm.solve(msg[-120:])
         # if api_result:
         #     return api_result
-        self.prompt.use_api_result(api_result)
 
         examples = await self.rerank_examples(msg[-120:])
         facts = await self.rerank_facts(msg[-120:])
@@ -168,6 +167,7 @@ class ReaderAgent(Agent):
         self.prompt.use_examples(examples)
         self.prompt.use_facts(facts)
         self.prompt.use_knowledge(knowledge)
+        self.prompt.use_api_result(api_result)
     
         reply = await self.prompt.generate_reply(
             conversation=msg[-800:],

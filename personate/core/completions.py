@@ -17,7 +17,7 @@ async def default_generator_api(prompt: str) -> str:
     else:
         return res
 
-async def custom_generator_api(prompt: str, maximum_similarity=70, max=400, stops=[">:", "From Discord", "From IRC", "\n(", "(", "> :", ">", "<", "(Sources", ], presence_penalty=0.23, temp=0.865, size='j1-large') -> str:
+async def custom_generator_api(prompt: str, maximum_similarity=70, max=400, stops=[">:", "From Discord", "From IRC", "\n(", "(", "> :", ">", "<|", "(Sources", "q:", "<0x" ], presence_penalty=0.23, temp=0.865, size='j1-large') -> str:
     """This function returns the text of a prompt according to settings specialised for usage with Agents.
     :param prompt: The prompt to get the text of.
     :return: The text of the prompt."""
