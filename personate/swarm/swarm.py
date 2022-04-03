@@ -56,7 +56,7 @@ class Swarm:
             return_none_if_below_threshold=True,
             threshold=0.5,
         )
-        logger.debug("Top function for query %s is %s", query, top_function_docstring)
+        logger.debug(f"Top function for query {query} is {top_function_docstring}")
         if not top_function_docstring:
             return
         func = self.abilities[top_function_docstring[0]]
