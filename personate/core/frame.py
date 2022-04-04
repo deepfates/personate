@@ -74,8 +74,8 @@ class Prompt:
                 ("examples", ""),
                 ("facts", ""),
                 ("is_ai", ""),
-                ("pre_conversation_annotation", ""),
                 ("response_type", ""),
+                ("pre_conversation_annotation", ""),
                 ("current_conversation", ""),
                 ("pre_response_annotation", ""),
                 ("conversation", ""),
@@ -94,7 +94,10 @@ class Prompt:
         self.frame.filters.append(filter)
 
     def set_introduction(self, introduction: str):
-        self.frame.field_values["introduction"] = f"Something that our team enjoyed recently was being given randomly-generated character descriptions, then writing rich, detailed, convincing dialogues. The plot-twist: those dialogues occur in a modern group chat. So, we present to you, the character description:\n\n{introduction}"
+        if introduction:
+            self.frame.field_values["introduction"] = introduction
+        else:
+            self.frame.field_values["introduction"] = f"Something that our team enjoyed recently was being given randomly-generated character descriptions, then writing rich, detailed, convincing dialogues. The plot-twist: those dialogues occur in a modern group chat. So, we present to you, the character description:\n\n{introduction}"
 
     def set_pre_conversation_annotation(self, annotation: str):
         self.frame.field_values["pre_conversation_annotation"] = annotation
@@ -102,22 +105,33 @@ class Prompt:
     def set_response_type(self, response_type: str):
         self.frame.field_values[
             "response_type"
-        ] = f"And now, the full 2000-word dialog where we give the character its unique, distinct voice and typing style. Users submitted questions to us and had long conversations, and we gave responses that were {response_type} (luckily we had expert researchers and specialists on the team – sometimes it took us up to three hours to craft the perfect answer):"
+        ] = f"And now, the full 2000-word dialog where we give the character its unique, distinct voice and typing style. Users submitted questions to us and had long conversations, and we gave responses that were {response_type} (luckily we had expert researchers and specialists on the team – sometimes it took us up to three hours to craft the perfect answer):\n\n"
 
     def set_pre_response_annotation(self, annotation: str):
-        self.frame.field_values[
-            "pre_response_annotation"
-        ] = f"(Quick note, and we promise there won't be any more commentary after this: {annotation})\n"
+        if annotation:
+            self.frame.field_values["pre_response_annotation"] = f"(Quick note, and we promise there won't be any more commentary after this: {annotation})\n"
+        else:
+            self.frame.field_values["pre_response_annotation"] = ""
 
     def set_is_ai(self, is_ai: bool = False):
-        ai_sentence = "Note that despite being specified as an AI, we chose to act as a human-level AI and to speak naturally, with artistic flair and personality. "
+        if is_ai:
+            ai_sentence = "Note that despite being specified as an AI, we chose to act as a human-level AI and to speak naturally, with artistic flair and personality. "
+        else:
+            ai_sentence = ""
         self.frame.field_values["is_ai"] = ai_sentence
+
+    def use_annotations(self, annotations: dict[str, str]) -> None:
+        self.set_pre_response_annotation(annotations.get("pre_response", ""))
+        self.set_pre_conversation_annotation(
+            annotations.get("pre_conversation", "")
+        )
+        self.set_introduction(annotations.get("introduction", ""))
 
     def use_examples(self, examples: Optional[list] = None):
         if examples:
             examples_sentence = (
-                "\n\nHere are some example dialogues that we sketched out that really capture the voice and tonality of the character:\n"
-                + "\n".join(examples)
+                # "\n\nHere are some example dialogues that we sketched out that really capture the voice and tonality of the character:\n"
+                "\n".join(examples)
                 + "\n\n"
             )
             self.frame.field_values["examples"] = examples_sentence

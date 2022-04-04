@@ -7,6 +7,7 @@ from personate.utils.logger import logger
 from personate.core.agent import Agent, get_conversation_history
 from personate.core.emojify import get_all_emojis
 from personate.core.frame import Prompt
+from personate.core.template import get_annotation_from_template
 from personate.swarm.swarm import Swarm
 
 class ReaderAgent(Agent):
@@ -24,14 +25,19 @@ class ReaderAgent(Agent):
         agent = cls(**data)
         # Built the prompt
         agent.prompt = Prompt(agent.name)#, size='j1-large')
-        agent.prompt.set_introduction(agent.description)
+        if data.get("preset", None):
+            annotations = get_annotation_from_template(data)
+            agent.prompt.use_annotations(annotations)
+        else:
+            agent.prompt.set_introduction(agent.description)
+            if agent.annotation:
+                agent.prompt.set_pre_response_annotation(agent.annotation)
         if agent.is_ai:
             agent.prompt.set_is_ai(True)
-        if agent.annotation:
-            agent.prompt.set_pre_response_annotation(agent.annotation)
         if not agent.response_type:
             agent.response_type = "concise, interesting and conversationally-engaging"
         agent.prompt.set_response_type(agent.response_type)
+        
         # Collect knowledge documents
         agent.ranker = Ranker()
         agent.reading_list = data["reading_list"]   
@@ -60,12 +66,12 @@ class ReaderAgent(Agent):
             try:
                 agent_dialogue = example.pop("agent")
                 user = list(example.keys())[0]
-                final_example = f"""<{user}> {example[user]}\n<{agent.name}> {agent_dialogue}"""
+                final_example = f"""<{user}> {example[user]}\n\n<{agent.name}> {agent_dialogue}"""
                 agent.add_example(final_example)
             except:
                 pass
         # Build agent's python abilities
-        agent.swarm = Swarm()
+        agent.swarm = Swarm(agent.ranker)
         abilities_module = data.get("abilities_module", None)
         if abilities_module:
             agent.add_abilities_from_library(abilities_module)
