@@ -53,10 +53,8 @@ class ReaderAgent(Agent):
             else:
                 if "http" in url or "www" in url:
                     agent.add_knowledge(url, is_url=True)
-                    logger.debug(f"Using url knowledge {url}")
                 else:
                     agent.add_knowledge(url, is_text=True)
-                    logger.debug(f"Using text knowledge {url}")    
         agent.add_knowledge_directory(agent.knowledge_dir)
         # Set keywords for the agent to respond to
         agent.activators = [o["listens_to"] for o in data["activators"]]
@@ -98,8 +96,10 @@ class ReaderAgent(Agent):
                 embedding_model=self.ranker.default_model,
                 is_url=True,
                 directory_to_dump=directory,
-                split_into_sentences=False,
+                split_into_sentences=True,
             )
+            logger.debug(f"Added url knowledge {filename}")
+
         elif is_text:
             doc = Document.from_url_or_file(
                 source=filename,
@@ -107,6 +107,7 @@ class ReaderAgent(Agent):
                 is_file=True,
                 directory_to_dump=directory,
             )
+            logger.debug(f"Added text knowledge {filename}")    
         if doc:
             self.document_queue.append(doc)
 
@@ -123,7 +124,12 @@ class ReaderAgent(Agent):
                 )
 
     async def assemble_documents(self):
-        documents: tuple[Document] = await asyncio.gather(*self.document_queue)
+        logger.debug("Assembling document queue")
+        #documents: tuple[Document] = await asyncio.gather(*self.document_queue) # this segfaults when multiple docs are embedding at once
+        documents: list[Document] = []
+        for file in self.document_queue:
+            doc = await file
+            documents.append(doc)
         self.document_queue.clear()
         self.document_collection.extend_documents(list(documents))
 
