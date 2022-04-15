@@ -41,7 +41,7 @@ class ReaderAgent(Agent):
         # Collect knowledge documents
         agent.ranker = Ranker()
         agent.reading_list = data["reading_list"]   
-        agent.home_dir = f"bots/{agent.name}"
+        agent.home_dir = f"{agent.name}"
         if not os.path.exists(agent.home_dir):
             os.mkdir(agent.home_dir)
         agent.knowledge_dir = f"{agent.home_dir}/knowledge"
