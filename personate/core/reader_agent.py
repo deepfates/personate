@@ -74,6 +74,8 @@ class ReaderAgent(Agent):
         if abilities_module:
             agent.add_abilities_from_library(abilities_module)
         agent.abilities_dir = f"{agent.home_dir}/abilities"
+        if not os.path.exists(agent.abilities_dir):
+            os.mkdir(agent.abilities_dir)
         agent.add_abilities_directory(agent.abilities_dir)
         return agent
 
@@ -131,7 +133,7 @@ class ReaderAgent(Agent):
             doc = await file
             documents.append(doc)
         self.document_queue.clear()
-        self.document_collection.extend_documents(list(documents))
+        self.document_collection.extend_documents(documents)
 
     async def search_knowledge(self, query: str, max_chars: int = 500) -> Optional[str]:
         if self.document_collection and len(self.document_collection.documents) > 0:
