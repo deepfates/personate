@@ -105,7 +105,7 @@ class Prompt:
     def set_response_type(self, response_type: str):
         self.frame.field_values[
             "response_type"
-        ] = f"And now, the full 2000-word dialog where we give the character its unique, distinct voice and typing style. Users submitted questions to us and had long conversations, and we gave responses that were {response_type} (luckily we had expert researchers and specialists on the team – sometimes it took us up to three hours to craft the perfect answer):\n\n"
+        ] = f"(And now, the full 2000-word dialog where we give the character its unique, distinct voice and typing style. Users submitted questions to us and had long conversations, and we gave responses that were {response_type}. Luckily we had expert researchers and specialists on the team – sometimes it took us up to three hours to craft the perfect answer):\n\n"
 
     def set_pre_response_annotation(self, annotation: str):
         if annotation:
